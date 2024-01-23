@@ -1,4 +1,4 @@
 [wokwi]
 version = 1
-firmware = '.pio\build\esp32-devkitlipo\firmware.bin'
-elf = '.pio\build\esp32-devkitlipo\firmware.elf'
+firmware = '.pio\build\ESP32_MENU\firmware.bin'
+elf = '.pio\build\ESP32_MENU\firmware.elf'

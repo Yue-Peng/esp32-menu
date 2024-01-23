@@ -1,49 +1,64 @@
 #include <Arduino.h>
-#include <U8g2lib.h>
+#include <SPI.h>
+#include <Wire.h>
+#include "configuration.h"
+#include "DisplayProcess.h"
+#include "BackendProcess.h"
 
-#define PIN_SCL 22
-#define PIN_SDA 21
+TaskHandle_t displayTask;
+TaskHandle_t processTask;
 
-#define PIN_BTN_ADD 19
-#define PIN_BTN_SET 18
-#define PIN_BTN_SUB 5
+bool taskDelay(int refreshRate);
 
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE, /* clock=*/PIN_SCL, /* data=*/PIN_SDA); // ESP32 Thing, HW I2C with pin remapping
+[[noreturn]] void displayCode(void *pvParameters);
 
-void setup(void)
-{
-  u8g2.begin();
-  u8g2.enableUTF8Print(); // enable UTF8 support for the Arduino print() function
+[[noreturn]] void processCode(void *pvParameters);
+
+void setup() {
+    Serial.begin(BAUD_RATE);
+    Serial.println("System starting");
+
+     xTaskCreatePinnedToCore(
+             displayCode,             // pxTaskCode：指向任务函数的指针，任务函数是你自定义的函数，用于执行任务的功能。
+             "displayLoop",           // pcName：任务的名称，为一个字符串。
+             DISPLAY_TASK_STACK_SIZE, // usStackDepth：任务堆栈的大小，以字节为单位。
+             nullptr,                 // pvParameters：传递给任务函数的参数，可以是任何类型的指针。
+             10,                       // uxPriority：任务的优先级，数值越高优先级越高。
+             &displayTask,            // pxCreatedTask：可选参数，指向用于保存新任务句柄的指针。如果不需要保存任务句柄，则可以传入NULL。
+             0);                      // xCoreID：指定任务要运行的核心编号，可以是0或1。
+     delay(100);
+
+     xTaskCreatePinnedToCore(
+             processCode,             /* Task function. */
+             "processLoop",           /* name of task. */
+             PROCESS_TASK_STACK_SIZE, /* Stack size of task */
+             nullptr,                 /* parameter of the task */
+             1,                       /* priority of the task */
+             &processTask,            /* Task handle to keep track of created task */
+             1);                      /* pin task to core 1 */
 }
 
-void draw(int x, int y, String msg)
-{
-  u8g2.setCursor(x, y);
-  u8g2.print(msg);
+void loop() { /* 不需要这个循环 */ delay(2000000000); }
+
+bool taskDelay(int refreshRate) {
+    delay(1000 / refreshRate);
+    return true;
 }
 
-static unsigned char u8g_logo_bits[] = {
-   0xff, 0xff, 0xff, 0xff, 0x3f, 0xff, 0xff, 0xff, 0xff, 0x3f, 0xe0, 0xe0,
-   0xff, 0xff, 0x3f, 0xe3, 0xe1, 0xff, 0xff, 0x3f, 0xf3, 0xf1, 0xff, 0xff,
-   0x3f, 0xf3, 0xf1, 0xfe, 0xbf, 0x37, 0xf3, 0x11, 0x1c, 0x1f, 0x30, 0xf3,
-   0x01, 0x08, 0x8c, 0x20, 0xf3, 0x01, 0x00, 0xc0, 0x39, 0xf3, 0x81, 0xc7,
-   0xc1, 0x39, 0xf3, 0xc1, 0xc7, 0xc9, 0x38, 0xf3, 0xc1, 0xc3, 0x19, 0x3c,
-   0xe3, 0x89, 0x01, 0x98, 0x3f, 0xc7, 0x18, 0x00, 0x08, 0x3e, 0x0f, 0x3c,
-   0x70, 0x1c, 0x30, 0x3f, 0xff, 0xfc, 0x87, 0x31, 0xff, 0xff, 0xbf, 0xc7,
-   0x23, 0x01, 0x00, 0x00, 0xc6, 0x23, 0x03, 0x00, 0x00, 0x0e, 0x30, 0xff,
-   0xff, 0x3f, 0x1f, 0x3c, 0xff, 0xff, 0x3f, 0xff, 0x3f, 0xff, 0xff, 0x3f,
-   0xff, 0x3f, 0xff, 0xff, 0xff, 0xff, 0x3f, 0xff, 0xff, 0xff, 0xff, 0x3f };
+void displayCode(void *pvParameters) {
+    Serial.printf("displayLoop running on core: %d\r\n", xPortGetCoreID());
+    DisplayProcess::getInstance()->setup();
+    while (true) {
+        DisplayProcess::getInstance()->begin();
+        taskDelay(DISPLAY_REFRESH_RATE);
+    }
+}
 
-void loop(void)
-{
-  u8g2.setFont(u8g2_font_unifont_t_chinese2); // use chinese2
-  u8g2.firstPage();
-  do
-  {
-    u8g2.drawXBMP(0, 0, 38, 24, u8g_logo_bits);
-    if (!digitalRead(PIN_BTN_ADD))      draw(0, 30, "PIN_BTN_ADD");
-    if (!digitalRead(PIN_BTN_SET))      draw(0, 50, "PIN_BTN_SET");
-    if (!digitalRead(PIN_BTN_SUB))      draw(0, 70, "PIN_BTN_SUB");
-  } while (u8g2.nextPage());
-  delay(100);
+void processCode(void *pvParameters) {
+    Serial.printf("processLoop running on core: %d\r\n", xPortGetCoreID());
+    BackendProcess::getInstance()->setup();
+    while (true) {
+        BackendProcess::getInstance()->begin();
+        taskDelay(PROCESS_REFRESH_RATE);
+    }
 }
