@@ -37,7 +37,9 @@ public:
     void setSettingValue(int value) {
         if (settingValue != value) {
             settingValue = value;
+            settingValue = settingValue < min ? min : (settingValue > max ? max : settingValue);
             EEPROM.writeInt(addr, settingValue);
+            flush();
         }
     }
 
@@ -52,12 +54,9 @@ public:
 
     void flush() { EEPROM.writeInt(addr, settingValue); }
 
-    void add() { settingValue += step; }
+    void add() { setSettingValue(settingValue + step); }
 
-    void sub() {
-        settingValue -= step;
-        flush();
-    }
+    void sub() { setSettingValue(settingValue - step); }
 };
 
 Setting *Setting::instance;
@@ -68,7 +67,7 @@ Setting::Setting() {
     // 配置项
     setMap = {
             {SET_BAUD_RATE, SettingItem(10, 1, 1, 1000, 1, false)},
-            {SET_TEMP, SettingItem(1234, 100, 1, 1000, 1, false)},
+            {SET_TEMP,      SettingItem(1234, 100, 1, 1000, 1, false)},
     };
 
     // 初始化内存
@@ -87,7 +86,7 @@ Setting::Setting() {
      * 如果是0，说明是首次运行，需要将默认内容写入到内存中
      * 如果是1，说明非首次运行，从内存中读取配置信息
      */
-    Serial.printf("----------------------------------- %d \r\n",EEPROM.readInt(0));
+    Serial.printf("----------------------------------- %d \r\n", EEPROM.readInt(0));
     if (EEPROM.readInt(0) == -1) {
         Serial.println("first start, flush setting to EEPROM");
         for (auto &item: setMap) { item.second.resetting(); }
