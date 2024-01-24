@@ -5,13 +5,13 @@
 #ifndef ESP32_MENU_BACKENDPROCESS_H
 #define ESP32_MENU_BACKENDPROCESS_H
 
-#include "Setting.h"
+#include "Variable.h"
 
 class BackendProcess {
 private:
     BackendProcess();
 
-    static Setting *set;
+    static Variable *var;
 
     static BackendProcess *instance;
 public:

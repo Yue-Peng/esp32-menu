@@ -4,20 +4,25 @@
 #include "configuration.h"
 #include "DisplayProcess.h"
 #include "BackendProcess.h"
-#include "Setting.h"
+#include "Variable.h"
+#include "SetName.h"
 
 TaskHandle_t displayTask;
 TaskHandle_t processTask;
 
-bool taskDelay(int refreshRate);
+bool taskRefreshRate(int refreshRate);
 
 [[noreturn]] void displayCode(void *pvParameters);
 
 [[noreturn]] void processCode(void *pvParameters);
 
+//Variable *var;
+
 void setup() {
     Serial.begin(BAUD_RATE);
     Serial.println("System starting");
+
+//    var = Variable::getInstance();
 
     xTaskCreatePinnedToCore(
             displayCode,             // pxTaskCode：指向任务函数的指针，任务函数是你自定义的函数，用于执行任务的功能。
@@ -41,7 +46,7 @@ void setup() {
 
 void loop() { /* 不需要这个循环 */ }
 
-bool taskDelay(int refreshRate) {
+bool taskRefreshRate(int refreshRate) {
     delay(1000 / refreshRate);
     return true;
 }
@@ -51,7 +56,7 @@ void displayCode(void *pvParameters) {
     DisplayProcess::getInstance()->setup();
     while (true) {
         DisplayProcess::getInstance()->begin();
-        taskDelay(DISPLAY_REFRESH_RATE);
+        taskRefreshRate(/*var->get(SET_DISPLAY_REFRESH_RATE)*/15);
     }
 }
 
@@ -60,6 +65,6 @@ void processCode(void *pvParameters) {
     BackendProcess::getInstance()->setup();
     while (true) {
         BackendProcess::getInstance()->begin();
-        taskDelay(PROCESS_REFRESH_RATE);
+        taskRefreshRate(/*var->get(SET_PROCESS_REFRESH_RATE)*/1);
     }
 }

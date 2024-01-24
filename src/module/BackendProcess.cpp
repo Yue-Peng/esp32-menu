@@ -1,12 +1,12 @@
 #include "BackendProcess.h"
 #include <Arduino.h>
-#include "Setting.h"
+#include "Variable.h"
 #include "SetName.h"
 
-Setting *BackendProcess::set;
+Variable *BackendProcess::var;
 
 BackendProcess::BackendProcess() {
-    set = Setting::getInstance();
+    var = Variable::getInstance();
 };
 
 BackendProcess *BackendProcess::instance;
@@ -19,7 +19,7 @@ BackendProcess *BackendProcess::getInstance() {
 void BackendProcess::setup() {}
 
 void BackendProcess::begin() {
-    Serial.println(set->get(SetName::SET_BAUD_RATE));
-    Serial.println(set->get(SetName::SET_TEMP));
-    set->add(SetName::SET_BAUD_RATE);
+//    var->get(SetName::VAR_SCREEN_TYPE) > 3 ?
+//    var->set(SetName::VAR_SCREEN_TYPE, 0) : var->add(SetName::VAR_SCREEN_TYPE);
+    delay(100000000);
 }

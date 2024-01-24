@@ -2,33 +2,61 @@
 // Created by user on 2024/1/23.
 //
 
-#include "Setting.h"
+#include "Variable.h"
 #include <unordered_map>
 #include "SetName.h"
 #include <EEPROM.h>
+#include "configuration.h"
 
 
-struct SettingItem {
+struct VariableItem {
 private:
     int addr;
     int settingValue;
+    int defaultValue;
     int step;
     int min;
     int max;
-    int defaultValue;
+    bool store;
     bool needRestart;
-
 public:
-    SettingItem() {};
 
-    SettingItem(int settingValue, int step, int min, int max, int defaultValue, bool needRestart) {
-        this->settingValue = settingValue;
+    VariableItem() = default;
+
+    VariableItem(int defaultValue, int step, int min, int max) {
+        this->addr = 0;
+        this->settingValue = defaultValue;
+        this->defaultValue = defaultValue;
         this->step = step;
         this->min = min;
         this->max = max;
-        this->defaultValue = defaultValue;
-        this->needRestart = needRestart;
+        this->store = true;
     }
+
+    VariableItem(int settingValue) {
+        this->addr = 0;
+        this->settingValue = settingValue;
+        this->defaultValue = settingValue;
+        this->step = 1;
+        this->min = -2000000000;
+        this->max = 2000000000;
+        this->store = false;
+    }
+
+    VariableItem(int settingValue, int defaultValue, int step, int min, int max, bool store) {
+        this->addr = 0;
+        this->settingValue = settingValue;
+        this->defaultValue = defaultValue;
+        this->step = step;
+        this->min = min;
+        this->max = max;
+        this->store = store;
+    }
+
+//    VariableItem(int settingValue) {
+//        VariableItem(settingValue, settingValue, 0, settingValue, settingValue, false, false);
+//    }
+
 
     void setAddress(int address) { this->addr = address; }
 
@@ -42,51 +70,65 @@ public:
         if (settingValue != value) {
             settingValue = value;
             settingValue = settingValue < min ? min : (settingValue > max ? max : settingValue);
-            EEPROM.writeInt(addr, settingValue);
             flush();
         }
     }
 
-    int getDefaultValue() { return defaultValue; }
+    int getDefaultValue() const { return defaultValue; }
 
-    int getSettingValue() { return settingValue; }
+    int getSettingValue() const { return settingValue; }
 
-    void resetting() {
+    void resetting() const {
         Serial.printf("flush value %d to address %d\r\n", defaultValue, addr);
         EEPROM.writeInt(addr, defaultValue);
     }
 
-    void flush() { EEPROM.writeInt(addr, settingValue); }
+    void flush() const { if (store) EEPROM.writeInt(addr, settingValue); }
 
     void add() { setSettingValue(settingValue + step); }
 
     void sub() { setSettingValue(settingValue - step); }
+
+    bool isStore() const { return store; }
 };
 
-Setting *Setting::instance;
+Variable *Variable::instance;
 
-std::unordered_map<SetName, SettingItem> setMap;
+std::unordered_map<SetName, VariableItem> setMap;
 
-Setting::~Setting() = default;
+Variable::~Variable() = default;
 
-Setting::Setting() {
+Variable::Variable() {
     // 配置项
     setMap = {
-            {SET_BAUD_RATE, SettingItem(10, 1, 1, 1000, 1, false)},
-            {SET_TEMP,      SettingItem(1234, 100, 1, 1000, 1, false)},
+            /*
+             * 基础配置，需要写入存储持久化
+             */
+            {SET_TEMP_BASE,         VariableItem(100, 1, 1, 1)},
+            {SET_TEMP_SLEEP,        VariableItem(50, 1, 1, 1)},
+            {SET_POINT_TEMP_COUNT,  VariableItem(10, 1, 1, 20)},
+            {SET_POINT_POWER_COUNT, VariableItem(10, 1, 1, 1)},
+
+            /*
+             * 运行变量，作为全局变量使用，不需要持久化到存储中
+             */
+            {VAR_SCREEN_TYPE,       VariableItem(0)},
+
     };
 
     // 初始化内存
     Serial.println("init EEPROM");
-    EEPROM.begin((SetName::SET_ITEM_COUNT + 1) * sizeof(int));
+    EEPROM.begin((setMap.size() + 1) * sizeof(int));
     Serial.println("EEPROM apply successful");
 
     // 给配置项分配内存地址
     Serial.println("init setting EEPROM address");
     int address = sizeof(int);
     for (auto &item: setMap) {
-        item.second.setAddress(address);
-        address += sizeof(int);
+        if (item.second.isStore()) {
+            item.second.setAddress(address);
+            address += sizeof(int);
+        }
     }
     Serial.println("EEPROM address init successful");
 
@@ -108,15 +150,17 @@ Setting::Setting() {
     }
 }
 
-Setting *Setting::getInstance() {
-    if (instance == nullptr) instance = new Setting();
+Variable *Variable::getInstance() {
+    if (instance == nullptr) instance = new Variable();
     return instance;
 }
 
-int Setting::get(SetName name) {
-    return setMap[name].getSettingValue();
+int Variable::get(SetName setName) {
+    return setMap[setName].getSettingValue();
 }
 
-void Setting::add(SetName name) { setMap[name].add(); }
+void Variable::set(SetName setName, int value) { setMap[setName].setSettingValue(value); }
 
-void Setting::sub(SetName name) { setMap[name].sub(); }
+void Variable::add(SetName setName) { setMap[setName].add(); }
+
+void Variable::sub(SetName setName) { setMap[setName].sub(); }

@@ -5,15 +5,19 @@
 #ifndef ESP32_MENU_DISPLAYPROCESS_H
 #define ESP32_MENU_DISPLAYPROCESS_H
 
-#include "Setting.h"
+#include "Variable.h"
 
 class DisplayProcess {
 private:
     DisplayProcess();
 
-    Setting *set;
+    Variable *var;
 
     static DisplayProcess *instance;
+
+    void mainScreen();
+
+    void settingScreen();
 public:
     ~DisplayProcess();
 
