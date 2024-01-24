@@ -32,7 +32,11 @@ public:
 
     void setAddress(int address) { this->addr = address; }
 
-    void readSetting() { EEPROM.readInt(addr); }
+    void readSetting() {
+        Serial.printf("read value from %d\r\n", addr);
+        settingValue = EEPROM.readInt(addr);
+        Serial.printf("addr %d value is %d\r\n", addr, settingValue);
+    }
 
     void setSettingValue(int value) {
         if (settingValue != value) {
@@ -48,7 +52,7 @@ public:
     int getSettingValue() { return settingValue; }
 
     void resetting() {
-        EEPROM.writeInt(0, 1);
+        Serial.printf("flush value %d to address %d\r\n", defaultValue, addr);
         EEPROM.writeInt(addr, defaultValue);
     }
 
@@ -63,6 +67,8 @@ Setting *Setting::instance;
 
 std::unordered_map<SetName, SettingItem> setMap;
 
+Setting::~Setting() = default;
+
 Setting::Setting() {
     // 配置项
     setMap = {
@@ -72,7 +78,9 @@ Setting::Setting() {
 
     // 初始化内存
     Serial.println("init EEPROM");
-    EEPROM.begin((setMap.size() + 1) * sizeof(int));
+    EEPROM.begin((SetName::SET_ITEM_COUNT + 1) * sizeof(int));
+    Serial.println("EEPROM apply successful");
+
     // 给配置项分配内存地址
     Serial.println("init setting EEPROM address");
     int address = sizeof(int);
@@ -80,16 +88,18 @@ Setting::Setting() {
         item.second.setAddress(address);
         address += sizeof(int);
     }
+    Serial.println("EEPROM address init successful");
 
     /*
      * 读取初始化位
      * 如果是0，说明是首次运行，需要将默认内容写入到内存中
      * 如果是1，说明非首次运行，从内存中读取配置信息
      */
-    Serial.printf("----------------------------------- %d \r\n", EEPROM.readInt(0));
+    Serial.printf("EEPROM init flag is %d, will be init.\r\n", EEPROM.readInt(0));
     if (EEPROM.readInt(0) == -1) {
         Serial.println("first start, flush setting to EEPROM");
         for (auto &item: setMap) { item.second.resetting(); }
+        EEPROM.writeInt(0, 1);
         Serial.println("EEPROM flush successfully");
     } else {
         Serial.println("read user setting from EEPROM");

@@ -7,5 +7,5 @@
 
 // 线程循环刷新率，这里是一个预估值，
 // 实际刷新率会受到线程中的延时影响
-#define DISPLAY_REFRESH_RATE 20
+#define DISPLAY_REFRESH_RATE 10
 #define PROCESS_REFRESH_RATE 2

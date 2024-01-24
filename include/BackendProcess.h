@@ -5,15 +5,16 @@
 #ifndef ESP32_MENU_BACKENDPROCESS_H
 #define ESP32_MENU_BACKENDPROCESS_H
 
+#include "Setting.h"
 
 class BackendProcess {
 private:
     BackendProcess();
 
+    static Setting *set;
+
     static BackendProcess *instance;
 public:
-    ~BackendProcess();
-
     static BackendProcess *getInstance();
 
     void setup();

@@ -3,9 +3,11 @@
 #include "Setting.h"
 #include "SetName.h"
 
-BackendProcess::BackendProcess() {}
+Setting *BackendProcess::set;
 
-BackendProcess::~BackendProcess() = default;
+BackendProcess::BackendProcess() {
+    set = Setting::getInstance();
+};
 
 BackendProcess *BackendProcess::instance;
 
@@ -14,11 +16,7 @@ BackendProcess *BackendProcess::getInstance() {
     return instance;
 }
 
-Setting *set;
-
-void BackendProcess::setup() {
-    set = Setting::getInstance();
-}
+void BackendProcess::setup() {}
 
 void BackendProcess::begin() {
     Serial.println(set->get(SetName::SET_BAUD_RATE));

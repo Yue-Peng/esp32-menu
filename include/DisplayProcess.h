@@ -5,9 +5,13 @@
 #ifndef ESP32_MENU_DISPLAYPROCESS_H
 #define ESP32_MENU_DISPLAYPROCESS_H
 
+#include "Setting.h"
+
 class DisplayProcess {
 private:
     DisplayProcess();
+
+    Setting *set;
 
     static DisplayProcess *instance;
 public:
@@ -16,6 +20,7 @@ public:
     static DisplayProcess *getInstance();
 
     void setup();
+
     void begin();
 };
 

@@ -5,9 +5,9 @@
 
 class Setting {
 private:
-    Setting();
-
     ~Setting();
+
+    Setting();
 
     static Setting *instance;
 public:
@@ -16,6 +16,7 @@ public:
     int get(SetName name);
 
     void add(SetName name);
+
     void sub(SetName name);
 };
 
